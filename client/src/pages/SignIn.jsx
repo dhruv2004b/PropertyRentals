@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import OAuth from "../components/OAuth";
 import {
   signInStart,
   signInFailure,
@@ -67,6 +68,7 @@ export default function SignIn() {
         >
           {loading ? "Working on it . . ." : "Sign In"}
         </button>
+        <OAuth />
       </form>
       <div className="flex gap-2 mt-5 ">
         <p>Don't have an account?</p>
