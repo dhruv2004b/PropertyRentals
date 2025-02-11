@@ -20,7 +20,7 @@ export const signin = async (req, res, next) => {
   const { email, password } = req.body;
   try {
     const validUser = await User.findOne({ email });
-    console.log("Done checking user");
+    // console.log("Done checking user");
     if (!validUser) {
       throw next(errorHandler(404, "User not Found"));
     }
@@ -28,7 +28,7 @@ export const signin = async (req, res, next) => {
       password,
       validUser.password
     );
-    console.log("Done checking pass");
+    // console.log("Done checking pass");
     if (!validPassword) {
       throw next(errorHandler(401, "Invalid Credentials"));
     }
