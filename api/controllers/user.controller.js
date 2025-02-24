@@ -13,10 +13,11 @@ export const updateUser = async (req, res, next) => {
   console.log("User ID from Token:", req.user.id);
   console.log("User ID from Request Params:", req.params.id);
 
-  if (req.user.id !== req.params.id) {
-    console.log("🚨 Unauthorized: User ID does not match!");
-    return next(errorHandler(401, "You can only update your own Account !"));
-  }
+  // Convert both to strings before comparing
+if (req.user.id.toString() !== req.params.id.toString()) {
+  console.log("🚨 Unauthorized: User ID does not match!");
+  return next(errorHandler(401, "You can only update your own Account !"));
+}
   try {
     if(req.body.password) {
       req.body.password= bcryptjs.hashSync(req.body.password,10);
