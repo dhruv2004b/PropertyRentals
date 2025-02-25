@@ -59,7 +59,7 @@ export const deleteUser=async(req,res,next)=>{
     res.clearCookie("access_token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Required for HTTPS
-      sameSite: "None", // Ensure it matches frontend settings
+      sameSite: "Strict", // Ensure it matches frontend settings
       path: "/", // Important to match the original path
     });
 

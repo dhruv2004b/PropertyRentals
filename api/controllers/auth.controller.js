@@ -75,3 +75,22 @@ export const google = async (req,res,next) => {
     next(error);
   }
 };
+
+
+export const signout=(req,res,next)=>{
+  try{
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Set to true only in production
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // Adjust based on environment
+      path: "/",
+    });
+    
+    res.status(200).json({ message: 'User has been Logged Out Successfully !!' });
+
+  }catch(error)
+  {
+    next(error);
+
+  }
+}
