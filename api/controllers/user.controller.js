@@ -1,12 +1,15 @@
 import User from "../models/user.model.js";
 import { errorHandler } from "../utils/error.js";
 import bcryptjs from "bcryptjs";
+import cookieParser from "cookie-parser";
 
 export const test = (req, res) => {
   res.json({
     message: "Hello api is working",
   });
 };
+
+// ==========================================UPDATE USER===================================================
 
 export const updateUser = async (req, res, next) => {
   console.log("🔍 Checking user permissions...");
@@ -42,4 +45,35 @@ if (req.user.id.toString() !== req.params.id.toString()) {
   } catch (error) {
     next(error);
   }
+};
+
+
+// ==================================================DELETE USER===============================================================
+
+export const deleteUser=async(req,res,next)=>{
+
+  if(req.user.id!== req.params.id) return next(errorHandler(401,'You can only delete your own account !!'))
+
+  try{
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    res.clearCookie("access_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Required for HTTPS
+      sameSite: "None", // Ensure it matches frontend settings
+      path: "/", // Important to match the original path
+    });
+
+    if (!deletedUser) {
+      console.log("❌ User not found!");
+      return next(errorHandler(404, "User not found!"));
+    }
+    res.status(200).json('User has been Deleted !!');
+
+  }catch(error)
+  {
+    next(error)
+  }
+  
+  
+
 };
