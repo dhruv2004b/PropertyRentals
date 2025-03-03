@@ -21,14 +21,40 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true })); 
 
-app.use(express.json({ limit: "50mb" })); // Increase the payload size limit to 50MB
-app.use(express.urlencoded({ limit: "50mb", extended: true })); // Increase the URL-encoded payload size limit
+app.use(express.json({ limit: "20mb" })); // Increase the payload size limit to 50MB
+app.use(express.urlencoded({ limit: "20mb", extended: true })); // Increase the URL-encoded payload size limit
 app.use(
     cors({
         origin: "http://localhost:5173", // Allow requests from this origin
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true, // Allow cookies to be sent
+        maxAge: 86400 // Cache CORS preflight requests for 24 hours
+
     })
 );
+// To debug requests, you can add this middleware temporarily:
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    console.log('Headers:', req.headers);
+    // Don't log body for image uploads as it will flood the console
+    if (!req.url.includes('/upload')) {
+      console.log('Body:', req.body);
+    } else {
+      console.log('Body: [Image upload - body content omitted]');
+    }
+    next();
+  });
+
+// Add a global error handler for JSON parsing errors
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        console.error("JSON Parsing Error:", err);
+        return res.status(400).json({ success: false, message: "Invalid JSON" });
+    }
+    next(err);
+});
+
 const port= 3000;
 
 app.listen(port,()=>{

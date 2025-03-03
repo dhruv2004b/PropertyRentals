@@ -25,69 +25,174 @@ export default function CreateListing() {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
 
- const handleImageSubmit = async (e) => {
+  // Function to compress images before upload
+const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        
+        img.onload = () => {
+          // Create a canvas element
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw image on canvas with new dimensions
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Get compressed image as base64 string
+          // Adjust quality (0.6 = 60% quality) to reduce file size
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          
+          resolve(compressedBase64);
+        };
+        
+        img.onerror = (error) => {
+          reject(error);
+        };
+      };
+      
+      reader.onerror = (error) => {
+        reject(error);
+      };
+    });
+  };
+  
+  // Updated image handling function
+  const handleImageSubmit = async (e) => {
     if (files.length > 0 && files.length + formData.imageUrls.length < 7) {
-        setUploading(true);
-        setImageUploadError(false);
-
-        const base64Urls = [];
-
-        // Convert each file to Base64
+      setUploading(true);
+      setImageUploadError(false);
+      console.log(`Processing ${files.length} files`);
+  
+      try {
+        const compressedImages = [];
+        
+        // Process each file one by one
         for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            const reader = new FileReader();
-
-            reader.onloadend = () => {
-                base64Urls.push(reader.result); // Add Base64 string to the array
-
-                // If all files are processed, send to backend
-                if (base64Urls.length === files.length) {
-                    sendImagesToBackend(base64Urls);
-                }
-            };
-
-            reader.onerror = () => {
-                setImageUploadError("Failed to convert image to Base64");
-                setUploading(false);
-            };
-
-            reader.readAsDataURL(file); // Convert file to Base64
-        }
-    } else {
-        setImageUploadError("You can only upload 6 images per listing");
-        setUploading(false);
-    }
-};
-
-const sendImagesToBackend = async (base64Urls) => {
-    try {
-        const res = await fetch("http://localhost:3000/api/listing/upload", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ images: base64Urls }), // Send Base64 strings to backend
-            credentials: "include", // Include cookies for authentication
-        });
-
-        const data = await res.json();
-
-        if (data.success === false) {
-            setImageUploadError(data.message || "Image upload failed");
+          const file = files[i];
+          console.log(`Processing file ${i+1}: ${file.name}, size: ${(file.size / 1024).toFixed(2)}KB`);
+          
+          try {
+            // Compress the image
+            const compressedBase64 = await compressImage(file);
+            console.log(`File ${i+1} compressed successfully`);
+            
+            // Calculate approximate size of base64 string
+            const approximateSize = (compressedBase64.length * 0.75) / 1024; // in KB
+            console.log(`Compressed size: ~${approximateSize.toFixed(2)}KB`);
+            
+            compressedImages.push(compressedBase64);
+          } catch (error) {
+            console.error(`Error compressing file ${i+1}:`, error);
+            setImageUploadError(`Failed to compress image ${file.name}`);
             setUploading(false);
             return;
+          }
         }
-
-        // Update the formData with the new image URLs
-        setFormData({ ...formData, imageUrls: formData.imageUrls.concat(data.imageUrls) });
-        setImageUploadError(false);
+        
+        if (compressedImages.length > 0) {
+          await sendImagesToBackend(compressedImages);
+        } else {
+          setImageUploadError("No images were processed successfully");
+          setUploading(false);
+        }
+      } catch (error) {
+        console.error("Error in image processing:", error);
+        setImageUploadError(`Image processing failed: ${error.message}`);
         setUploading(false);
-    } catch (error) {
-        console.error("Error uploading images:", error);
-        setImageUploadError("Image upload failed");
-        setUploading(false);
+      }
+    } else {
+      setImageUploadError("You can only upload 6 images per listing");
+      setUploading(false);
     }
-};
+  };
+  
+  // Simplified backend upload function
+  const sendImagesToBackend = async (base64Urls) => {
+    try {
+      console.log(`Sending ${base64Urls.length} images to backend`);
+      
+      let allImageUrls = [];
+      let successCount = 0;
+      
+      // Send each image individually to avoid payload size issues
+      for (let i = 0; i < base64Urls.length; i++) {
+        try {
+          console.log(`Sending image ${i+1} of ${base64Urls.length}`);
+          
+          const res = await fetch("http://localhost:3000/api/listing/upload", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ images: [base64Urls[i]] }), // Send just one image at a time
+            credentials: "include",
+          });
+          
+          if (!res.ok) {
+            console.error(`Error response from server for image ${i+1}:`, res.status);
+            continue; // Skip this image but try the next one
+          }
+          
+          const data = await res.json();
+          
+          if (data.success && data.imageUrls && data.imageUrls.length > 0) {
+            allImageUrls = [...allImageUrls, ...data.imageUrls];
+            successCount++;
+            console.log(`Image ${i+1} uploaded successfully`);
+          } else {
+            console.error(`Server returned success=false for image ${i+1}`);
+          }
+        } catch (err) {
+          console.error(`Error uploading image ${i+1}:`, err);
+          // Continue with next image
+        }
+      }
+      
+      // Update state with successfully uploaded images
+      if (allImageUrls.length > 0) {
+        setFormData({ ...formData, imageUrls: [...formData.imageUrls, ...allImageUrls] });
+        setImageUploadError(
+          successCount < base64Urls.length 
+            ? `${successCount} out of ${base64Urls.length} images uploaded successfully` 
+            : false
+        );
+      } else {
+        setImageUploadError("Failed to upload any images");
+      }
+      
+      setUploading(false);
+    } catch (error) {
+      console.error("Error in image upload process:", error);
+      setImageUploadError(`Upload failed: ${error.message}`);
+      setUploading(false);
+    }
+  };
 
   const handleRemoveImage = (index) => {
     setFormData({

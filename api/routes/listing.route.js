@@ -5,7 +5,7 @@ import { verifyToken } from '../utils/verifyUser.js';
 const router = express.Router();
 
 // Route for uploading Base64 images
-router.post('/upload', verifyToken, uploadImages);
+router.post('/upload', uploadImages);
 
 
 
