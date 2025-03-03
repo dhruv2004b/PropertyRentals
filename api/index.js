@@ -19,11 +19,16 @@ mongoose.connect(process.env.MONGO).then(()=>{
 const app= express();
 app.use(express.json());
 app.use(cookieParser());
+app.use(express.urlencoded({ extended: true })); 
 
-app.use(cors({
-    origin: "http://localhost:5173", // Change this to match your frontend URL
-    credentials: true,  // allows cookies in request
-  }));
+app.use(express.json({ limit: "50mb" })); // Increase the payload size limit to 50MB
+app.use(express.urlencoded({ limit: "50mb", extended: true })); // Increase the URL-encoded payload size limit
+app.use(
+    cors({
+        origin: "http://localhost:5173", // Allow requests from this origin
+        credentials: true, // Allow cookies to be sent
+    })
+);
 const port= 3000;
 
 app.listen(port,()=>{
