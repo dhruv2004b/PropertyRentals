@@ -321,7 +321,7 @@ const compressImage = (file) => {
             placeholder="Description"
             className="border p-3 rounded-lg"
             id="description"
-            maxLength="62"
+            maxLength="10000"
             minLength="10"
             required
           />
@@ -421,12 +421,15 @@ const compressImage = (file) => {
                 type="number"
                 id="regularPrice"
                 min="1"
-                max="10000000"
+                max="1000000000000"
                 required
               />
               <div className="flex flex-col items-center">
                 <p>Regular Price</p>
-                <span className="text-xs">( ₹ / months)</span>
+                {/* <span className="text-xs">( ₹ / months)</span> */}
+                {formData.type === 'rent' && (
+                  <span className='text-xs'>( ₹ / month)</span>
+                )}
               </div>
             </div>
             {formData.offer && (
@@ -438,12 +441,15 @@ const compressImage = (file) => {
                   type="number"
                   id="discountPrice"
                   min="0"
-                  max="1000000"
+                  max="1000000000000"
                   required
                 />
                 <div className="flex flex-col items-center">
                   <p>Discounted Price</p>
-                  <span className="text-xs">( ₹ / months)</span>
+                  {/* <span className="text-xs">( ₹ / months)</span> */}
+                  {formData.type === 'rent' && (
+                    <span className='text-xs'>( ₹ / month)</span>
+                  )}
                 </div>
               </div>
             )}
